@@ -55,37 +55,49 @@ from rerun_interface import Rerun
 
 import traceback
 
+from typing import Literal
+import typer
 
-if __name__ == "__main__":
-                                                     
+app = typer.Typer()
+
+@app.command()
+def run_test(feature_extractor: str , loop_detector: str, num_features: int = 2000, scale_factor: float = 1.2, dataset_idx: int = 1, sample_freq:int = 1):                                      
     config = Config()
+    assert feature_extractor in ['SUPERPOINT', 'XFEAT','BRISK','ORB2','ORB2_FREAK'], f"Feature Extractor Not One Of: {' '.join(['SUPERPOINT', 'XFEAT','BRISK','ORB2','ORB2_FREAK'])}"
+    assert loop_detector in ['DBOW3','ALEXNET','SAD','HDC_DELF','COSPLACE'], f"Feature Extractor Not One Of: {' '.join(['DBOW3','ALEXNET','SAD','HDC_DELF','COSPLACE'])}"
 
+    config.dataset_settings['base_path'] = f'./data/videos/testdata_{dataset_idx}_{sample_freq}'
     dataset = dataset_factory(config)
+    
 
     trajectory_writer = None
-    if config.trajectory_settings['save_trajectory']:
-        trajectory_writer = TrajectoryWriter(format_type=config.trajectory_settings['format_type'], filename=config.trajectory_settings['filename'])
+    if True:
+        trajectory_writer = TrajectoryWriter(format_type='kitti', filename='output/kitti.txt')
         trajectory_writer.open_file()
     
     groundtruth = groundtruth_factory(config.dataset_settings)
 
     camera = PinholeCamera(config)
     
-    num_features=2000 
-    if config.num_features_to_extract > 0:  # override the number of features to extract if we set something in the settings file
-        num_features = config.num_features_to_extract
+
+
 
     # Select your tracker configuration (see the file feature_tracker_configs.py) 
     # FeatureTrackerConfigs: SHI_TOMASI_ORB, FAST_ORB, ORB, ORB2, ORB2_FREAK, ORB2_BEBLID, BRISK, AKAZE, FAST_FREAK, SIFT, ROOT_SIFT, SURF, KEYNET, SUPERPOINT, FAST_TFEAT, CONTEXTDESC, LIGHTGLUE, XFEAT, XFEAT_XFEAT
     # WARNING: At present, SLAM does not support LOFTR and other "pure" image matchers (further details in the commenting notes about LOFTR in feature_tracker_configs.py).
-    feature_tracker_config = FeatureTrackerConfigs.ORB2
+    feature_tracker_config = getattr(FeatureTrackerConfigs,feature_extractor)
     feature_tracker_config['num_features'] = num_features
+    #feature_tracker_config['num_levels'] = 1
+    feature_tracker_config['scale_factor'] = scale_factor
     Printer.green('feature_tracker_config: ',feature_tracker_config)    
     
+
+
+
     # Select your loop closing configuration (see the file loop_detector_configs.py). Set it to None to disable loop closing. 
     # LoopDetectorConfigs: DBOW2, DBOW3, IBOW, OBINDEX2, VLAD, HDC_DELF, SAD, ALEXNET, NETVLAD, COSPLACE, EIGENPLACES  etc.
     # NOTE: under mac, the boost/text deserialization used by DBOW2 and DBOW3 may be very slow.
-    loop_detection_config = LoopDetectorConfigs.DBOW3
+    loop_detection_config = getattr(LoopDetectorConfigs, loop_detector)
     Printer.green('loop_detection_config: ',loop_detection_config)
         
     # Select your depth estimator in the front-end (EXPERIMENTAL, WIP)
@@ -106,7 +118,7 @@ if __name__ == "__main__":
                 environment_type=dataset.environmentType(), 
                 config=config) 
     slam.set_viewer_scale(dataset.scale_viewer_3d)
-    time.sleep(1) # to show initial messages 
+     
     
     # load system state if requested         
     if config.system_state_load: 
@@ -115,11 +127,6 @@ if __name__ == "__main__":
         print(f'viewer_scale: {viewer_scale}')
         slam.set_tracking_state(SlamState.INIT_RELOCALIZE)
 
-    viewer3D = Viewer3D(scale=dataset.scale_viewer_3d)
-    if groundtruth is not None:
-        gt_traj3d, gt_timestamps = groundtruth.getFull3dTrajectory()
-        if viewer3D is not None:
-            viewer3D.set_gt_trajectory(gt_traj3d, gt_timestamps, align_with_scale=dataset.sensor_type==SensorType.MONOCULAR)
     
     if platform.system() == 'Linux':    
         display2d = None # Display2D(camera.width, camera.height)  # pygame interface 
@@ -128,19 +135,23 @@ if __name__ == "__main__":
     # if display2d is None:
     #     cv2.namedWindow('Camera', cv2.WINDOW_NORMAL) # to make it resizable if needed
 
-    plot_drawer = SlamPlotDrawer(slam, viewer3D)
-    
+
     img_writer = ImgWriter(font_scale=0.7)
 
     do_step = False      # proceed step by step on GUI 
     do_reset = False     # reset on GUI 
     is_paused = False    # pause/resume on GUI 
-    is_map_save = False  # save map on GUI
+    is_map_save = True  # save map on GUI
     
     key_cv = None
             
     img_id = 0  #180, 340, 400   # you can start from a desired frame id if needed 
-    while True:
+    output_index = 0
+
+    keep_repeating = True
+
+
+    while keep_repeating:
         
         img, img_right, depth = None, None, None    
         
@@ -154,7 +165,7 @@ if __name__ == "__main__":
         if not is_paused or do_step:
         
             if dataset.isOk():
-                print('..................................')               
+                print('..................................')         
                 img = dataset.getImageColor(img_id)
                 depth = dataset.getDepth(img_id)
                 img_right = dataset.getImageColorRight(img_id) if dataset.sensor_type == SensorType.STEREO else None
@@ -181,87 +192,42 @@ if __name__ == "__main__":
                                   
                     slam.track(img, img_right, depth, img_id, timestamp)  # main SLAM function 
                                     
-                    # 3D display (map display)
-                    if viewer3D is not None:
-                        viewer3D.draw_map(slam)
+
 
                     img_draw = slam.map.draw_feature_trails(img)
-                    img_writer.write(img_draw, f'id: {img_id}', (30, 30))
                     
-                    # 2D display (image display)
-                    if display2d is not None:
-                        display2d.draw(img_draw)
-                    else: 
-                        cv2.imshow('Camera', img_draw)
+                   
+                    cv2.imwrite(f'./test/camera{output_index}.jpg', img_draw)
+                    output_index += 1
                     
-                    # draw 2d plots
-                    plot_drawer.draw(img_id)
                         
                 if trajectory_writer is not None and slam.tracking.cur_R is not None and slam.tracking.cur_t is not None:
                     trajectory_writer.write_trajectory(slam.tracking.cur_R, slam.tracking.cur_t, timestamp)
                     
                 if time_start is not None: 
-                    duration = time.time()-time_start
-                    if(frame_duration > duration):
-                        time.sleep(frame_duration-duration) 
-                    
-                img_id += 1 
+                    duration = time.time()-time_start     
+                img_id += 1
+
+                if img_id >= dataset.num_frames:
+                    keep_repeating = False
             else: 
-                time.sleep(0.1)     # img is None
-                
-            # 3D display (map display)
-            if viewer3D is not None:
-                viewer3D.draw_dense_map(slam)  
-                              
+                pass
         else:
-            time.sleep(0.1)     # pause or do step on GUI                           
-        
-        # get keys 
-        key = plot_drawer.get_key()
-        if display2d is None:
-            key_cv = cv2.waitKey(1) & 0xFF   
+            break      
+
+
+
             
-        # if key != '' and key is not None:
-        #     print(f'key pressed: {key}') 
+                    
+            # manage interface infos  
+    print("DONE!")                    
+    if True:
+        config.system_state_folder_path = "./output"
+        slam.save_system_state(config.system_state_folder_path)
+        dataset.save_info(config.system_state_folder_path)
+        groundtruth.save(config.system_state_folder_path)
+        Printer.green('uncheck pause checkbox on GUI to continue...\n')        
         
-        
-        # manage SLAM states 
-        
-        if slam.tracking.state==SlamState.LOST:
-            if display2d is None:  
-                #key_cv = cv2.waitKey(0) & 0xFF   # useful when drawing stuff for debugging
-                key_cv = cv2.waitKey(500) & 0xFF                                 
-            else: 
-                #getchar()
-                time.sleep(0.5)
-                
-        # manage interface infos  
-                         
-        if is_map_save:
-            slam.save_system_state(config.system_state_folder_path)
-            dataset.save_info(config.system_state_folder_path)
-            groundtruth.save(config.system_state_folder_path)
-            Printer.green('uncheck pause checkbox on GUI to continue...\n')        
-        
-        if viewer3D is not None:
-            is_paused = viewer3D.is_paused()    
-            is_map_save = viewer3D.is_map_save() and is_map_save == False 
-            do_step = viewer3D.do_step() and do_step == False  
-            do_reset = viewer3D.reset() and do_reset == False
-            if viewer3D.is_closed():
-                key = 'q'
-                                  
-        if key == 'q' or (key_cv == ord('q')):
-            slam.quit()
-            plot_drawer.quit()         
-            if display2d is not None:
-                display2d.quit()
-            if viewer3D is not None:
-                viewer3D.quit()           
-            break
-            
-    trajectory_writer.close_file()
-    
-    #cv2.waitKey(0)
-    if display2d is None:
-        cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    typer.run(run_test)

@@ -211,7 +211,7 @@ class Dataset(object):
             self.is_ok = False
             if self.num_frames is not None and frame_id >= self.num_frames:
                 Printer.yellow(f'Dataset end: {self.name}, path: {self.path}, frame id: {frame_id}')
-            else:    
+            else: 
                 Printer.red(f'Cannot open dataset: {self.name}, path: {self.path}, frame id: {frame_id}')
             return img    
         
@@ -289,7 +289,7 @@ class VideoDataset(Dataset):
             Printer.green('read timestamps from ' + timestamps_path)
 
         print('Processing Video Input')
-        self.num_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.num_frames = len(self.timestamps)
         self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) 
         self.fps = float(self.cap.get(cv2.CAP_PROP_FPS))

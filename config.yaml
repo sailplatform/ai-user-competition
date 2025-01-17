@@ -136,7 +136,7 @@ VIDEO_DATASET:
   # settings: settings/KITTI00-02.yaml
   # name: video.mp4
   #
-  base_path: ./data/videos/kitti06
+  base_path: ./data/videos/testdata_1_8
   settings: settings/KITTI04-12.yaml
   name: video_color.mp4
   #
