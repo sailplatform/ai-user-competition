@@ -52,6 +52,7 @@ install_pip_package psutil
 install_pip_package PyQt5-sip==12.15.0    # NOTE: This is required by pyqt5. The the next versions of PyQt5-sip require python 3.9.
 install_pip_package pyqt5==5.15.11        # version 5.15.11 working under mac
 install_pip_package pyqtgraph==0.13.3  
+install_pip_package typer
 
 INSTALL_OPENCV_FROM_SOURCE=1
 

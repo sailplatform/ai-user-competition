@@ -89,6 +89,7 @@ function install_pip_package(){
     virtual_env=$(get_virtualenv_name)
     if [ $do_install -eq 1 ] ; then
         if [ "" == "$virtual_env" ]; then
+	    which pip3
             pip3 install --user $1          
         else
             pip3 install $1     # if you are in a virtual environment the option `--user` will install make pip3 install things outside the env 
