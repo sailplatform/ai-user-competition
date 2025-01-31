@@ -11,7 +11,6 @@ __pycache__
 tmp
 build
 debug.txt
-groundtruth.txt
 kitti
 map.json
 config.pyc 
