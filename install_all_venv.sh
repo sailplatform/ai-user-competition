@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euxo pipefail
+
 #N.B: this install script allows you to run main_slam.py and all the scripts 
 
 # import the utils 
