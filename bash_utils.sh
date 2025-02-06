@@ -54,7 +54,7 @@ function check_package(){
 function install_package(){
     do_install=$(check_package $1)
     if [ $do_install -eq 1 ] ; then
-        sudo apt-get install -y $1
+        apt-get install -y $1
     fi 
 }
 
@@ -90,9 +90,9 @@ function install_pip_package(){
     if [ $do_install -eq 1 ] ; then
         if [ "" == "$virtual_env" ]; then
 	    which pip3
-            pip3 install --user $1          
+            python -m pip install --user $1          
         else
-            pip3 install $1     # if you are in a virtual environment the option `--user` will install make pip3 install things outside the env 
+            python -m pip install $1     # if you are in a virtual environment the option `--user` will install make pip3 install things outside the env 
         fi
     fi 
 }

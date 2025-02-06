@@ -21,11 +21,6 @@ fi
 # set up git submodules  
 ./install_git_modules.sh 
 
-# create a pyslam environment within venv 
-./pyenv-create.sh 
-
-# activate the created python virtual environment 
-. pyenv-activate.sh   
 
 export WITH_PYTHON_INTERP_CHECK=ON  # in order to detect the correct python interpreter 
 
