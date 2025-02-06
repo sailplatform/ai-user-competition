@@ -9,13 +9,6 @@ set -euxo pipefail
 
 set -e
 
-# if we are not under docker
-if [ ! -f /.dockerenv  ]; then 
-  # Provide the password to sudo once at the start
-  echo "insert your sudo password once" 
-  sudo -S -v    # not working properly under mac
-fi
-
 
 case "$OSTYPE" in
   darwin*)
