@@ -1,0 +1,62 @@
+
+FROM ubuntu:20.04	
+
+RUN apt-get -y update && apt-get -y dist-upgrade 
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata apt-utils keyboard-configuration
+RUN apt-get install -y git curl wget ca-certificates 
+
+# Basic Utilities 
+
+# Latest X11 / mesa GL
+RUN apt-get install -y mesa-utils 
+
+# Dependencies required to build rviz
+RUN apt-get install -y libqt5core5a libqt5dbus5 libqt5gui5 
+
+# Additional development tools
+RUN apt-get install -y cmake build-essential git
+
+# Python 
+RUN apt-get install -y python3-pip 
+RUN ln -s /usr/bin/python3 /usr/bin/python 
+
+# ROS deps
+RUN apt-get install -y \
+#python-rosinstall \
+#python-jinja2 \
+doxygen \
+libssh2-1-dev \
+libudev-dev 
+
+# pyslam stuff 
+RUN apt-get install -y rsync python3-sdl2 python3-tk \
+    libprotobuf-dev libeigen3-dev libopencv-dev libsuitesparse-dev libglew-dev
+RUN apt-get install -y libhdf5-dev    # needed when building h5py wheel from src is required (arm64)
+
+################################
+
+# from  http://wiki.ros.org/docker/Tutorials/Hardware%20Acceleration  (with nvidia-docker2)
+# nvidia-container-runtime
+ENV NVIDIA_VISIBLE_DEVICES \
+    ${NVIDIA_VISIBLE_DEVICES:-all}
+ENV NVIDIA_DRIVER_CAPABILITIES \
+    ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics
+
+# Make SSH available
+EXPOSE 22
+
+# Mount the user's home directory
+VOLUME "app"
+
+# Install and configure git
+RUN git config --global user.name "root"
+RUN git config --global user.email "root@root.com"
+RUN git config --global http.proxy ""
+
+# Install pyslam
+WORKDIR app
+RUN echo "cloning and building pyslam repository in ${home}"
+# the following to inform we are inside docker at build time 
+RUN git clone --recursive https://github.com/sailplatform/ai-user-competition.git .
+RUN ./install_all_venv.sh 
+RUN /bin/bash -c "echo 'source pyslam/pyenv-activate.sh' >> ~/.bashrc"
