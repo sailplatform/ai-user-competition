@@ -90,9 +90,9 @@ function install_pip_package(){
     if [ $do_install -eq 1 ] ; then
         if [ "" == "$virtual_env" ]; then
 	    which pip3
-            python -m pip install --user $1          
+            python -m pip install --use-pep517 --user $1 
         else
-            python -m pip install $1     # if you are in a virtual environment the option `--user` will install make pip3 install things outside the env 
+            python -m pip install --use-pep517 $1     # if you are in a virtual environment the option `--user` will install make pip3 install things outside the env 
         fi
     fi 
 }
