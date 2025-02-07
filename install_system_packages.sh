@@ -7,12 +7,12 @@
 
 # ====================================================
 
-#set -e
+set -euxo pipefail
 
 print_blue '================================================'
 print_blue "Configuring and installing system packages ..."
 
-sudo apt-get update
+apt-get update
 
 install_package rsync 
 install_package unzip 

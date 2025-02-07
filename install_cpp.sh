@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+set -euxo pipefail
 
 # NOTE: If you get build errors related to python interpreter check under Linux then run the following command:
 # export WITH_PYTHON_INTERP_CHECK=ON
@@ -22,11 +23,6 @@ if [[ -n "$EXTERNAL_OPTIONS" ]]; then
     echo "external option: $EXTERNAL_OPTIONS" 
 fi
 
-# check if we want to add a python interpreter check
-if [[ -n "$WITH_PYTHON_INTERP_CHECK" ]]; then
-    echo "WITH_PYTHON_INTERP_CHECK: $WITH_PYTHON_INTERP_CHECK " 
-    EXTERNAL_OPTIONS="$EXTERNAL_OPTIONS -DWITH_PYTHON_INTERP_CHECK=$WITH_PYTHON_INTERP_CHECK"
-fi
 
 
 OpenCV_DIR="$ROOT_DIR/thirdparty/opencv/install/lib/cmake/opencv4"
@@ -36,19 +32,6 @@ fi
 
 echo "EXTERNAL_OPTIONS: $EXTERNAL_OPTIONS"
 
-# ====================================================
-# check if want to use conda or venv
-if [ -z $USING_CONDA_PYSLAM ]; then
-    if [[ -z "${USE_PYSLAM_ENV}" ]]; then
-        USE_PYSLAM_ENV=0
-    fi
-    if [ $USE_PYSLAM_ENV -eq 1 ]; then
-        . pyenv-activate.sh
-    fi  
-else 
-    echo "Using conda pyslam..."
-    . pyenv-conda-activate.sh
-fi 
 
 print_blue '================================================'
 print_blue "Building and installing cpp ..."
